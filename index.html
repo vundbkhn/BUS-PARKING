@@ -2,22 +2,26 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Bus Jam Bé Yêu 🚌</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
 html,body{margin:0;height:100%;overflow:hidden;font-family:"Baloo 2","Fredoka","Comic Sans MS",system-ui,sans-serif}
-body{display:flex;justify-content:center;background:#cfe8ff}
-#app{position:relative;height:100%;width:100%;max-width:520px;display:flex;flex-direction:column}
+body{position:fixed;inset:0;display:flex;overscroll-behavior:none;touch-action:manipulation;background:#cfe8ff}
+#app{position:relative;height:100%;width:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#app.L{flex-direction:row}
+#app.L #bar{flex-direction:column;width:76px;height:auto;justify-content:center;padding:6px}
+#app.L #ttl{flex:none;font-size:13px;margin-bottom:4px}
+#app.L .btn{width:100%;padding:8px 4px}
 #bar{height:56px;display:flex;align-items:center;gap:6px;padding:6px 8px}
 #ttl{flex:1;text-align:center;font-weight:900;font-size:17px;line-height:1.1;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.3)}
 .btn{border:0;border-radius:14px;background:#4aa3ff;color:#fff;font:800 16px inherit;font-family:inherit;padding:8px 11px;box-shadow:0 4px 0 #2b72c4;cursor:pointer}
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #2b72c4}
 .btn.g{background:#3fc86b;box-shadow:0 4px 0 #26974c}
-#cw{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+#cw{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0}
 canvas{touch-action:none;display:block}
 #md{position:fixed;inset:0;background:rgba(20,20,50,.55);display:none;align-items:center;justify-content:center;z-index:5}
-.card{background:#fff;border-radius:26px;padding:16px;width:min(92vw,460px);max-height:86vh;overflow:auto;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+.card{background:#fff;border-radius:26px;padding:16px;width:min(92vw,460px);max-height:92vh;overflow:auto;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
 .card h2{margin:4px 0 8px;font-size:26px;color:#e8590c}
 .stars{font-size:46px;letter-spacing:4px}
@@ -34,12 +38,13 @@ canvas{touch-action:none;display:block}
 .big{width:150px;margin:6px auto;font-size:1.9em;animation:pop .6s cubic-bezier(.2,1.8,.4,1)}
 .big .e{font-size:84px}.big .e i{font-size:38px}.big b{font-size:20px}.big small{font-size:14px}
 #ts{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:#333c;color:#fff;padding:8px 16px;border-radius:20px;font-weight:700;display:none;z-index:6}
+@media (orientation:landscape){.card{width:min(94vw,720px)}.gr{grid-template-columns:repeat(6,1fr)}.lv{grid-template-columns:repeat(10,1fr)}}
+@media (max-height:520px){.big{width:100px;font-size:1.2em}.big .e{font-size:56px}.big .e i{font-size:26px}.stars{font-size:32px}.card h2{font-size:20px;margin:0}.card{padding:10px}.card p{margin:4px 0}}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="bar">
-    <button class="btn" onclick="openLv(0)">📋</button>
     <div id="ttl"></div>
     <button class="btn" onclick="start(S.lv)">🔄</button>
     <button class="btn g" id="sb" onclick="openStk()">🎒</button>
@@ -49,18 +54,18 @@ canvas{touch-action:none;display:block}
 <div id="md"></div><div id="ts"></div>
 <script>
 const $=s=>document.querySelector(s),cv=$('#cv'),g=cv.getContext('2d'),md=$('#md');
-const W=400,H=700,COLS=9,ROWS=10,CS=40,GX=20,GY=268,SLOTS=5,WIN=6;
-g.scale(2,2);
+let W=400,H=700,CS=40,GX=20,GY=268,OX=0,OY=0,land=false;const COLS=9,ROWS=10,SLOTS=5,WIN=6;
+if(!g.roundRect)CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){r=Math.min(r,w/2,h/2);this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath()};
 const COL=['#ff4d4d','#ff9a2e','#ffd93b','#46c95a','#2ec8f0','#3b6cff','#a158f2','#ff5fb8'];
 const TH=[
-{n:'Mùa Xuân 🌸',b:['#ffd6ec','#c8f3d0'],e:['🌸','🌷','🦋']},
-{n:'Mùa Hè ☀️',b:['#8fe3ff','#ffe9a0'],e:['☀️','🍉','🐚','🌊']},
-{n:'Mùa Thu 🍂',b:['#ffd9a0','#f0a86b'],e:['🍂','🍁','🌰']},
-{n:'Mùa Đông ❄️',b:['#bfe0ff','#f1f8ff'],e:['❄️','⛄','❄️']},
-{n:'Halloween 🎃',b:['#5b2a86','#ff8a2b'],e:['🎃','🦇','👻','🕸️']},
-{n:'Giáng Sinh 🎄',b:['#2e8b57','#d9534f'],e:['🎄','🎁','⭐','❄️']},
-{n:'Tết 🧧',b:['#ff6a4d','#ffd34d'],e:['🧧','🌼','🏮','🎆']},
-{n:'Trung Thu 🏮',b:['#2b2f7a','#ffcf5a'],e:['🏮','🌕','🐇','⭐']}];
+{n:'Mùa Xuân',b:['#ffd6ec','#c8f3d0'],t:'#fff5fa'},
+{n:'Mùa Hè',b:['#8fe3ff','#ffe9a0'],t:'#f4fcff'},
+{n:'Mùa Thu',b:['#ffd9a0','#f0a86b'],t:'#fff6e8'},
+{n:'Mùa Đông',b:['#bfe0ff','#f1f8ff'],t:'#f2f8ff'},
+{n:'Halloween',b:['#5b2a86','#ff8a2b'],t:'#fff0e0'},
+{n:'Giáng Sinh',b:['#2e8b57','#d9534f'],t:'#f3fff3'},
+{n:'Tết',b:['#ff6a4d','#ffd34d'],t:'#fff7dc'},
+{n:'Trung Thu',b:['#2b2f7a','#ffcf5a'],t:'#fff9e0'}];
 // 20 hình dạng bãi đỗ (x,y trong khoảng -1..1)
 const SH=[
 ()=>1,(x,y)=>x*x+y*y<=1.05,(x,y)=>Math.abs(x)+Math.abs(y)<=1.1,(x,y)=>{let d=x*x+y*y;return d>=.28&&d<=1.05},
@@ -76,10 +81,10 @@ const SH=[
 // 20 con vật x 10 biểu cảm = 200 sticker
 const A=[['🦭','Hải cẩu'],['🦫','Capybara'],['🦈','Megalodon'],['🐋','Cá nhà táng'],['🐳','Cá voi sát thủ'],['🐉','Leviathan'],['🐶','Chó'],['🐱','Mèo'],['🐧','Cánh cụt'],['🐼','Gấu trúc'],['🦊','Cáo'],['🐻','Gấu'],['🐰','Thỏ'],['🐸','Ếch'],['🐙','Bạch tuộc'],['🐬','Cá heo'],['🦆','Vịt'],['🐯','Hổ'],['🦁','Sư tử'],['🐨','Koala']];
 const M=[['😍','Yêu lắm!'],['😴','Zzz...'],['😎','Ngầu!'],['🥺','Làm ơn~'],['😂','Haha'],['😡','Grrr!'],['🤩','Wow!'],['😱','Á á á!'],['🥳','Tiệc thôi!'],['🤔','Hmm?']];
-let SV={lv:1,stars:{},inv:[]};try{Object.assign(SV,JSON.parse(localStorage.getItem('busjam1')||'{}'))}catch(e){}
+let nT;let SV={lv:1,stars:{},inv:[]};try{Object.assign(SV,JSON.parse(localStorage.getItem('busjam1')||'{}'))}catch(e){}
 const store=()=>{try{localStorage.setItem('busjam1',JSON.stringify(SV))}catch(e){}};
 function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-let AC;function beep(f,d,ty='sine'){try{AC=AC||new AudioContext();const o=AC.createOscillator(),v=AC.createGain();o.type=ty;o.frequency.value=f;v.gain.value=.08;o.connect(v);v.connect(AC.destination);o.start();v.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
+let AC;function beep(f,d,ty='sine'){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),v=AC.createGain();o.type=ty;o.frequency.value=f;v.gain.value=.08;o.connect(v);v.connect(AC.destination);o.start();v.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
 function toast(t){const e=$('#ts');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',1300)}
 const cells=b=>{let a=[];for(let i=0;i<b.len;i++)a.push(b.o=='h'?[b.c+i,b.r]:[b.c,b.r+i]);return a};
 function clear(b,l){
@@ -100,19 +105,23 @@ function gen(lv){
     if(!cs.every(c=>mask[c[1]][c[0]]&&!bs.some(o2=>cells(o2).some(d=>d[0]==c[0]&&d[1]==c[1]))))continue;
     bs.push(b);if(!solv(bs))bs.pop();
   }
-  bs.forEach(b=>{b.x=GX+(b.c+(b.o=='h'?b.len/2:.5))*CS;b.y=GY+(b.r+(b.o=='v'?b.len/2:.5))*CS});
-  let ch=[];bs.forEach(b=>{for(let i=0;i<b.len;i++)ch.push({col:b.col})});
-  // hành khách theo cụm 2 người rồi xáo trộn
-  let groups=[];for(let i=0;i<ch.length;i+=2)groups.push(ch.slice(i,i+2));
-  const q=shuf(groups,r).flat();
+  bs.forEach(place);
+  // thứ tự giải được (đảm bảo thắng), hành khách xếp theo thứ tự đó rồi xáo trộn cục bộ
+  const l=bs.slice(),order=[];
+  while(l.length){const cl=l.filter(x=>clear(x,l)),pk=cl[r()*cl.length|0];order.push(pk);l.splice(l.indexOf(pk),1)}
+  const q=[];order.forEach(b=>{for(let i=0;i<b.cap;i++)q.push({col:b.col})});
+  const blk=lv<30?4:lv<200?6:8;
+  for(let i=0;i<q.length;i+=blk){const part=shuf(q.slice(i,i+blk),r);part.forEach((p,k)=>q[i+k]=p)}
   const th=TH[((lv-1)/5|0)%8];
-  const deco=[];for(let i=0;i<16;i++)deco.push({x:r()*W,y:r()*H,v:12+r()*20,s:16+r()*14,e:th.e[r()*th.e.length|0],p:r()*6});
-  return{lv,buses:bs,mask,q,bay:Array(SLOTS).fill(null),fx:[],conf:[],deco,th,mist:0,over:0,done:0,bt:.5,lt:0,time:0}}
+  return{lv,order,buses:bs,mask,q,bay:Array(SLOTS).fill(null),fx:[],conf:[],pal,th,mist:0,over:0,done:0,bt:.5,lt:0,time:0}}
 let S=null;
 function start(lv){
+  clearTimeout(nT);
   S=gen(lv);document.body.style.background=`linear-gradient(160deg,${S.th.b[0]},${S.th.b[1]})`;
   $('#ttl').innerHTML=`Level ${lv}<br><small>${S.th.n}</small>`;$('#sb').textContent=`🎒 ${SV.inv.length}`;md.style.display='none'}
-const bayX=i=>55+i*72,BY=187;
+const bayX=i=>55+i*72+OX,BYf=()=>187+OY;
+function place(b){b.x=GX+(b.c+(b.o=='h'?b.len/2:.5))*CS;b.y=GY+(b.r+(b.o=='v'?b.len/2:.5))*CS}
+function relayout(){if(!S)return;S.buses.forEach(b=>{if(b.state=='grid')place(b);else if(b.state=='fly'){place(b);b.x0=b.x;b.y0=b.y}else if(b.state=='bay'){b.x=bayX(b.slot);b.y=BYf()}else if(b.state=='leave')b.y=BYf()})}
 const ang=b=>b.o=='h'?(b.dir>0?0:Math.PI):(b.dir>0?Math.PI/2:-Math.PI/2);
 function go(b){
   if(b.state!='grid'||S.over)return;
@@ -123,15 +132,14 @@ function go(b){
 function boardOne(){
   const w=Math.min(WIN,S.q.length);
   for(let i=0;i<w;i++){const p=S.q[i],b=S.bay.find(b=>b&&b.state=='bay'&&!b.full&&b.col==p.col);
-    if(b){S.q.splice(i,1);b.pax++;S.fx.push({x0:40+i*62,y0:62,x1:b.x,y1:b.y,t:0,col:p.col});beep(700+b.pax*80,.08);
+    if(b){S.q.splice(i,1);b.pax++;S.fx.push({x0:40+i*62+OX,y0:62+OY,x1:b.x,y1:b.y,t:0,col:p.col});beep(700+b.pax*80,.08);
       if(b.pax>=b.cap){b.full=1;b.lt=.5}return true}}
   return false}
 function upd(dt){
   if(!S)return;S.time+=dt;
-  S.deco.forEach(d=>{d.y+=d.v*dt;d.x+=Math.sin(S.time+d.p)*10*dt;if(d.y>H+20){d.y=-20;d.x=Math.random()*W}});
   S.buses.forEach(b=>{
     if(b.sh>0)b.sh-=dt;
-    if(b.state=='fly'){b.t+=dt/.55;if(b.t>=1){b.state='bay';b.x=bayX(b.slot);b.y=BY}}
+    if(b.state=='fly'){b.t+=dt/.55;if(b.t>=1){b.state='bay';b.x=bayX(b.slot);b.y=BYf()}}
     else if(b.state=='bay'&&b.full){b.lt-=dt;if(b.lt<=0){b.state='leave';b.vx=0}}
     else if(b.state=='leave'){b.vx+=dt*1500;b.x+=b.vx*dt;if(b.x>W+90){b.state='done';S.bay[b.slot]=null;S.done++;beep(880,.2);if(S.done==S.buses.length)win()}}});
   S.fx.forEach(f=>f.t+=dt/.3);S.fx=S.fx.filter(f=>f.t<1);
@@ -142,16 +150,19 @@ function upd(dt){
     const stuck=S.bay.every(b=>b&&b.state=='bay'&&!b.full);
     S.lt=stuck?S.lt+.14:0;if(S.lt>.8)lose()}}}
 function confetti(){for(let i=0;i<140;i++)S.conf.push({x:W/2,y:300,vx:(Math.random()-.5)*600,vy:-Math.random()*600-100,c:COL[i%8],r:Math.random()*6})}
+const nextLv=()=>S.lv>=1000?1:S.lv+1;
+function adv(){clearTimeout(nT);if(S&&S.won)start(nextLv())}
 function win(){
-  S.over=1;confetti();beep(660,.15);setTimeout(()=>beep(880,.15),150);setTimeout(()=>beep(1100,.3),300);
+  const me=S;S.over=1;S.won=1;confetti();beep(660,.15);setTimeout(()=>beep(880,.15),150);setTimeout(()=>beep(1100,.3),300);
   const n=S.mist<=2?3:S.mist<=6?2:1;
   SV.stars[S.lv]=Math.max(SV.stars[S.lv]||0,n);SV.lv=Math.max(SV.lv,Math.min(1000,S.lv+1));
   const own=new Set(SV.inv),pool=[];for(let i=0;i<200;i++)if(!own.has(i))pool.push(i);
   let id=null;if(pool.length){id=pool[Math.random()*pool.length|0];SV.inv.push(id)}
   store();$('#sb').textContent=`🎒 ${SV.inv.length}`;
-  setTimeout(()=>modal(`<h2>🎉 Chúc mừng bé! 🎉</h2><div class="stars">${'⭐'.repeat(n)}${'☆'.repeat(3-n)}</div>`+
+  nT=setTimeout(()=>{if(S!==me)return;
+    modal(`<div onclick="adv()"><h2>🎉 Chúc mừng bé! 🎉</h2><div class="stars">${'⭐'.repeat(n)}${'☆'.repeat(3-n)}</div>`+
     (id!==null?`<p><b>Bé nhận được sticker mới!</b></p><div class="big">${stk(id,1)}</div>`:`<p>Bé đã sưu tầm đủ 200 sticker! 🏆</p>`)+
-    `<button class="btn g" onclick="start(${Math.min(1000,S.lv+1)})">Level tiếp ▶</button> <button class="btn" onclick="openStk()">🎒 Kho sticker</button>`),900)}
+    `<p>Đang chuyển sang màn ${nextLv()}…</p></div>`);nT=setTimeout(adv,3400)},700)}
 function lose(){S.over=1;beep(200,.4,'sawtooth');setTimeout(()=>modal(`<h2>😢 Bãi đỗ đầy rồi!</h2><p>Không có hành khách nào lên xe được. Bé thử lại nhé!</p><button class="btn g" onclick="start(${S.lv})">🔄 Chơi lại</button>`),500)}
 function modal(h){md.innerHTML='<div class="card">'+h+'</div>';md.style.display='flex'}
 md.onclick=e=>{if(e.target==md&&!S.over)md.style.display='none'};
@@ -159,69 +170,82 @@ function stk(id,own){const a=A[id%20],m=M[id/20|0];
   return own?`<div class="sk" style="--h:${id*47%360};--r:${(id%5-2)*4}deg"><div class="e">${a[0]}<i>${m[0]}</i></div><b>${m[1]}</b><small>${a[1]}</small></div>`
   :`<div class="sk lk"><div class="e">❓</div><small>#${id+1}</small></div>`}
 function openStk(){
+  if(S&&S.over)clearTimeout(nT);
   const own=new Set(SV.inv);let h=`<h2>🎒 Kho sticker ${SV.inv.length}/200</h2><div class="gr">`;
   [...SV.inv].reverse().forEach(i=>h+=stk(i,1));
   for(let i=0;i<200;i++)if(!own.has(i))h+=stk(i,0);
-  modal(h+`</div><button class="btn" onclick="S.over?0:0;md.style.display='none'">Đóng</button>`)}
-function openLv(p){
-  let h=`<h2>📋 Chọn level</h2><div class="lv">`;
-  for(let i=p*50+1;i<=p*50+50;i++){const s=SV.stars[i]||0;h+=`<button class="btn" ${i>SV.lv?'disabled':''} onclick="start(${i})">${i}<small>${s?'⭐'.repeat(s):'&nbsp;'}</small></button>`}
-  h+=`</div><button class="btn" ${p<1?'disabled':''} onclick="openLv(${p-1})">◀</button> Trang ${p+1}/20 <button class="btn" ${p>18?'disabled':''} onclick="openLv(${p+1})">▶</button>`;
-  modal(h)}
+  modal(h+`</div>${S.over?`<button class="btn g" onclick="${S.won?'adv()':'start('+S.lv+')'}">Chơi tiếp ▶</button>`:`<button class="btn" onclick="md.style.display='none'">Đóng</button>`}`)}
 // ---- vẽ ----
 function dk(c,a=.28){const n=parseInt(c.slice(1),16);return`rgb(${(n>>16)*(1-a)|0},${(n>>8&255)*(1-a)|0},${(n&255)*(1-a)|0})`}
 function rr(x,y,w,h,r){g.beginPath();g.roundRect(x,y,w,h,r)}
-function busD(x,y,L,Wd,a,col,arrow){
+function busD(x,y,L,Wd,a,col,arrow,txt){
+  const bx=arrow?L/2-48:2,tw=Math.max(20,String(txt).length*8+8);
   g.save();g.translate(x,y);g.rotate(a);
-  g.fillStyle='rgba(0,0,0,.18)';rr(-L/2+2,-Wd/2+6,L,Wd,Wd*.3);g.fill();
-  g.fillStyle=dk(col);rr(-L/2,-Wd/2+3,L,Wd,Wd*.3);g.fill();
-  g.fillStyle=col;rr(-L/2,-Wd/2,L,Wd,Wd*.3);g.fill();
-  g.fillStyle='#e3f7ff';for(let x2=-L/2+7;x2<L/2-20;x2+=14){rr(x2,-Wd/2+3,9,6,2);g.fill()}
-  g.fillStyle='#bfeaff';rr(L/2-14,-Wd/2+4,9,Wd-8,3);g.fill();
-  g.fillStyle='#fff8';g.beginPath();g.arc(L/2-3,-Wd*.28,2.5,0,7);g.arc(L/2-3,Wd*.28,2.5,0,7);g.fill();
-  if(arrow){const k=Wd/32;g.fillStyle='#fff';g.beginPath();g.moveTo(-12*k,-3.5*k);g.lineTo(0,-3.5*k);g.lineTo(0,-9*k);g.lineTo(13*k,0);g.lineTo(0,9*k);g.lineTo(0,3.5*k);g.lineTo(-12*k,3.5*k);g.closePath();g.fill()}
-  g.restore()}
+  g.fillStyle='rgba(0,0,0,.22)';rr(-L/2+1,-Wd/2+5,L,Wd,9);g.fill();
+  g.fillStyle='#2a2f45';[-.27,.27].forEach(f=>[-1,1].forEach(sg=>{rr(L*f-6,sg*Wd/2-(sg>0?1:3),12,4,2);g.fill()}));
+  g.fillStyle=dk(col,.42);rr(-L/2,-Wd/2,L,Wd,9);g.fill();
+  g.fillStyle=col;rr(-L/2+2,-Wd/2+2,L-4,Wd-5,7);g.fill();
+  g.fillStyle='rgba(255,255,255,.32)';rr(-L/2+5,-Wd/2+4,L-10,5,3);g.fill();
+  g.fillStyle='#2f4d73';for(let wx=-L/2+6;wx+9<bx-tw/2-2;wx+=12){rr(wx,-Wd/2+10,9,Wd-19,2.5);g.fill()}
+  g.fillStyle='#bfe6ff';rr(L/2-10,-Wd/2+6,6,Wd-12,2);g.fill();
+  g.fillStyle='#fff6b8';g.beginPath();g.arc(L/2-2,-Wd*.3,2.6,0,7);g.arc(L/2-2,Wd*.3,2.6,0,7);g.fill();
+  if(arrow){const ax=L/2-23;g.beginPath();g.moveTo(ax-8,-4);g.lineTo(ax,-4);g.lineTo(ax,-9);g.lineTo(ax+11,0);g.lineTo(ax,9);g.lineTo(ax,4);g.lineTo(ax-8,4);g.closePath();
+    g.fillStyle='#fff';g.strokeStyle=dk(col,.5);g.lineWidth=1.5;g.lineJoin='round';g.fill();g.stroke()}
+  g.restore();
+  const wx=x+Math.cos(a)*bx,wy=y+Math.sin(a)*bx;
+  g.fillStyle='#fff';g.strokeStyle=dk(col,.45);g.lineWidth=2;rr(wx-tw/2,wy-9,tw,18,9);g.fill();g.stroke();
+  g.fillStyle=dk(col,.55);g.font='900 13px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,wx,wy+1);g.textAlign='left';g.textBaseline='alphabetic'}
 function ppl(x,y,r,col){
   g.fillStyle=dk(col);g.beginPath();g.arc(x,y+2,r,0,7);g.fill();g.fillStyle=col;g.beginPath();g.arc(x,y,r,0,7);g.fill();
   if(r>12){g.fillStyle='#222';g.beginPath();g.arc(x-r*.35,y-r*.1,r*.12,0,7);g.arc(x+r*.35,y-r*.1,r*.12,0,7);g.fill();
     g.strokeStyle='#222';g.lineWidth=1.6;g.beginPath();g.arc(x,y+r*.1,r*.4,.25,Math.PI-.25);g.stroke()}}
 function draw(){
   g.clearRect(0,0,W,H);if(!S)return;
-  g.globalAlpha=.75;S.deco.forEach(d=>{g.font=d.s+'px serif';g.fillText(d.e,d.x,d.y)});g.globalAlpha=1;
-  // hàng chờ hành khách
-  g.fillStyle='rgba(255,255,255,.5)';rr(10,32,380,100,22);g.fill();
+  g.save();g.translate(OX,OY);
+  g.fillStyle='rgba(255,255,255,.55)';rr(10,32,380,100,22);g.fill();
   g.font='800 14px sans-serif';g.fillStyle='#fff';g.strokeStyle='rgba(0,0,0,.4)';g.lineWidth=3;
   const tx=`Hành khách đang chờ: ${S.q.length}`;g.strokeText(tx,16,24);g.fillText(tx,16,24);
-  for(let i=0;i<Math.min(WIN,S.q.length);i++)ppl(40+i*62,62,i?20:22,COL[S.q[i].col]);
-  for(let i=WIN;i<Math.min(S.q.length,WIN+22);i++)ppl(26+(i-WIN)*16.5,108,7,COL[S.q[i].col]);
-  // chỗ đỗ
-  for(let i=0;i<SLOTS;i++){g.fillStyle='rgba(60,60,90,.35)';rr(22+i*72,134,66,112,14);g.fill();g.strokeStyle='#fff9';g.setLineDash([6,5]);g.lineWidth=2;g.stroke();g.setLineDash([])}
-  // bãi xe
-  g.fillStyle='rgba(255,255,255,.38)';rr(GX-8,GY-8,COLS*CS+16,ROWS*CS+16,20);g.fill();
-  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(S.mask[y][x]){g.fillStyle='rgba(255,255,255,.55)';rr(GX+x*CS+2,GY+y*CS+2,CS-4,CS-4,8);g.fill()}
+  for(let i=0;i<Math.min(WIN,S.q.length);i++)ppl(40+i*62,60,i?20:22,COL[S.q[i].col]);
+  const cnt={};S.q.forEach(p=>cnt[p.col]=(cnt[p.col]||0)+1);
+  const n=S.pal.length,x0=200-(n*44-4)/2;g.textAlign='center';g.font='900 14px sans-serif';
+  S.pal.forEach((c,i)=>{const k=cnt[c]||0,x=x0+i*44;g.globalAlpha=k?1:.35;g.fillStyle=dk(COL[c],.35);rr(x,98,40,26,13);g.fill();g.fillStyle=COL[c];rr(x,97,40,24,12);g.fill();
+    g.fillStyle='#fff';g.strokeStyle=dk(COL[c],.5);g.lineWidth=3;g.lineJoin='round';g.strokeText(k,x+20,114);g.fillText(k,x+20,114)});
+  g.globalAlpha=1;g.textAlign='left';
+  for(let i=0;i<SLOTS;i++){g.fillStyle='rgba(58,66,98,.75)';rr(22+i*72,134,66,112,14);g.fill();g.strokeStyle='#fffb';g.setLineDash([6,5]);g.lineWidth=2;g.stroke();g.setLineDash([])}
+  g.restore();
+  g.fillStyle='rgba(58,66,98,.88)';rr(GX-8,GY-8,COLS*CS+16,ROWS*CS+16,20);g.fill();
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(S.mask[y][x]){
+    g.fillStyle='rgba(0,0,0,.18)';rr(GX+x*CS+2,GY+y*CS+4,CS-4,CS-4,8);g.fill();
+    g.globalAlpha=(x+y)%2?.95:.8;g.fillStyle=S.th.t;rr(GX+x*CS+2,GY+y*CS+2,CS-4,CS-4,8);g.fill();g.globalAlpha=1}
   S.buses.forEach(b=>{
     const c=COL[b.col];
-    if(b.state=='grid'){const s=b.sh>0?Math.sin(b.sh*60)*4:0;busD(b.x+(b.o=='h'?0:s),b.y+(b.o=='h'?s:0),b.len*CS-6,CS-8,ang(b),c,1)}
+    if(b.state=='grid'){const sh=b.sh>0?Math.sin(b.sh*60)*4:0;busD(b.x+(b.o=='h'?0:sh),b.y+(b.o=='h'?sh:0),b.len*CS-6,CS-8,ang(b),c,1,b.cap)}
     else if(b.state=='fly'){const e=1-Math.pow(1-b.t,3),tx=bayX(b.slot),d=((-Math.PI/2-b.a0+9*Math.PI)%(2*Math.PI))-Math.PI;
-      busD(b.x0+(tx-b.x0)*e,b.y0+(BY-b.y0)*e-Math.sin(Math.PI*b.t)*30,b.L0+(80-b.L0)*e,b.W0+(40-b.W0)*e,b.a0+d*e,c,0)}
-    else if(b.state=='bay'){busD(b.x,b.y,80,40,-Math.PI/2,c,0);
-      g.fillStyle='#fff';g.strokeStyle='#0004';g.lineWidth=3;g.font='800 15px sans-serif';g.textAlign='center';const t=b.pax+'/'+b.cap;g.strokeText(t,b.x,238);g.fillText(t,b.x,238);g.textAlign='left'}
-    else if(b.state=='leave')busD(b.x,b.y,80,40,0,c,0)});
+      busD(b.x0+(tx-b.x0)*e,b.y0+(BYf()-b.y0)*e-Math.sin(Math.PI*b.t)*30,b.L0+(84-b.L0)*e,b.W0+(44-b.W0)*e,b.a0+d*e,c,b.t<.4?1:0,b.cap)}
+    else if(b.state=='bay')busD(b.x,b.y,84,44,-Math.PI/2,c,0,b.pax+'/'+b.cap);
+    else if(b.state=='leave')busD(b.x,b.y,84,44,0,c,0,b.cap+'/'+b.cap)});
   S.fx.forEach(f=>{const e=f.t;ppl(f.x0+(f.x1-f.x0)*e,f.y0+(f.y1-f.y0)*e-Math.sin(Math.PI*e)*24,13*(1-e*.5),COL[f.col])});
   S.conf.forEach(c=>{g.fillStyle=c.c;g.fillRect(c.x,c.y,c.r+3,c.r+3)})}
 let last=0;function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;upd(dt);draw();requestAnimationFrame(loop)}
-function rs(){const a=$('#cw'),s=Math.min(a.clientWidth/W,a.clientHeight/H);cv.style.width=W*s+'px';cv.style.height=H*s+'px'}
-addEventListener('resize',rs);
+function rs(){
+  land=innerWidth>innerHeight*1.05;$('#app').className=land?'L':'P';
+  const a=$('#cw'),w=a.clientWidth||1,h=a.clientHeight||1,asp=w/h;
+  if(land){W=780;H=Math.round(Math.min(560,Math.max(420,W/asp)));CS=38;GX=410;GY=(H-380)/2;OX=0;OY=(H-222)/2-24}
+  else{W=400;H=Math.round(Math.min(880,Math.max(700,W/asp)));CS=40;GX=20;GY=268+(H-700)*.6;OX=0;OY=(H-700)*.25}
+  const s=Math.min(w/W,h/H),k=s*(devicePixelRatio||1);
+  cv.style.width=W*s+'px';cv.style.height=H*s+'px';cv.width=Math.round(W*k);cv.height=Math.round(H*k);g.setTransform(k,0,0,k,0,0);relayout()}
+addEventListener('resize',rs);addEventListener('orientationchange',()=>setTimeout(rs,250));
 // ---- chạm & kéo ----
 let sel=null;
 function pt(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
 cv.addEventListener('pointerdown',e=>{
   if(!S||S.over)return;const[x,y]=pt(e),c=Math.floor((x-GX)/CS),r=Math.floor((y-GY)/CS);
   const b=S.buses.find(b=>b.state=='grid'&&cells(b).some(k=>k[0]==c&&k[1]==r));
-  sel=b?{b,x,y}:null;cv.setPointerCapture(e.pointerId);if(AC&&AC.state=='suspended')AC.resume()});
+  sel=b?{b,x,y}:null;cv.setPointerCapture(e.pointerId);try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume()}catch(e){}});
 cv.addEventListener('pointermove',e=>{
   if(!sel)return;const[x,y]=pt(e);
   if(Math.hypot(x-sel.x,y-sel.y)>14){const b=sel.b;sel=null;go(b)}});
+cv.addEventListener('pointercancel',()=>sel=null);
 cv.addEventListener('pointerup',()=>{if(sel){const b=sel.b;sel=null;go(b)}});
 rs();start(Math.min(SV.lv,1000));requestAnimationFrame(loop);
 </script>
